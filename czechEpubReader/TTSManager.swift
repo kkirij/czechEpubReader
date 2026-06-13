@@ -42,7 +42,6 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
 
     override init() {
         super.init()
-        setupAudioSession()
         setupRemoteControls()
         loadModel()
     }
@@ -101,7 +100,7 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
         var modelConfig = SherpaOnnxOfflineTtsModelConfig()
         modelConfig.vits = vitsConfig
         modelConfig.num_threads = 2
-        modelConfig.debug = 0
+        modelConfig.debug = 1
         modelConfig.provider = UnsafePointer(strdup("cpu"))
 
         var config = SherpaOnnxOfflineTtsConfig()
@@ -126,6 +125,7 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             errorMessage = "TTS engine není připraven."
             return
         }
+        setupAudioSession()
         stop()
 
         currentPosition = fromPosition
@@ -222,6 +222,9 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             return
         }
 
+        // Aktivuj audio session těsně před přehráváním
+        try? AVAudioSession.sharedInstance().setActive(true)
+
         do {
             audioPlayer = try AVAudioPlayer(data: wavData)
             audioPlayer?.delegate = self
@@ -246,16 +249,11 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
     // MARK: - Audio Session
 
     private func setupAudioSession() {
-        do {
-            try audioSession.setCategory(
-                .playback,
-                mode: .spokenAudio,
-                options: [.allowBluetooth, .allowBluetoothA2DP]
-            )
-            try audioSession.setActive(true)
-        } catch {
-            errorMessage = "Chyba audio session: \(error.localizedDescription)"
-        }
+        try? AVAudioSession.sharedInstance().setCategory(
+            .playback,
+            mode: .spokenAudio,
+            options: [.allowBluetooth, .allowBluetoothA2DP]
+        )
     }
 
     // MARK: - Remote Controls (Lock Screen)
