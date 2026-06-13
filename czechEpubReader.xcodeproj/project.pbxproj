@@ -1,0 +1,498 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E88596882FDC6B52006D8AFD /* EPUBKit in Frameworks */ = {isa = PBXBuildFile; productRef = E88596872FDC6B52006D8AFD /* EPUBKit */; };
+		E8F599502FDD9A7300A3CF86 /* CoreML.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8F5994E2FDD9A6800A3CF86 /* CoreML.framework */; };
+		E8F599542FDD9A7E00A3CF86 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8F599522FDD9A7B00A3CF86 /* Accelerate.framework */; };
+		E8F599582FDD9A9400A3CF86 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8F599562FDD9A8F00A3CF86 /* Foundation.framework */; };
+		E8F5995B2FDD9AD500A3CF86 /* czechEpubReaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8F5995A2FDD9AD500A3CF86 /* czechEpubReaderApp.swift */; };
+		E8F5995D2FDD9BBB00A3CF86 /* libsherpa-onnx.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E8F5995C2FDD9B8A00A3CF86 /* libsherpa-onnx.a */; };
+		E8F5995F2FDD9CB400A3CF86 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8F5995E2FDD9CB400A3CF86 /* Metal.framework */; };
+		E8F599612FDD9CC800A3CF86 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E8F599602FDD9CC800A3CF86 /* MetalPerformanceShaders.framework */; };
+		E8F59C5B2FDDB00B00A3CF86 /* espeak-ng-data in Resources */ = {isa = PBXBuildFile; fileRef = E8F59C5A2FDDB00B00A3CF86 /* espeak-ng-data */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E8F5994C2FDD9A5B00A3CF86 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		E8F599382FDC7EA100A3CF86 /* czechEpubReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = czechEpubReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E8F5994E2FDD9A6800A3CF86 /* CoreML.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreML.framework; path = System/Library/Frameworks/CoreML.framework; sourceTree = SDKROOT; };
+		E8F599522FDD9A7B00A3CF86 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
+		E8F599562FDD9A8F00A3CF86 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
+		E8F5995A2FDD9AD500A3CF86 /* czechEpubReaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = czechEpubReaderApp.swift; sourceTree = "<group>"; };
+		E8F5995C2FDD9B8A00A3CF86 /* libsherpa-onnx.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = "libsherpa-onnx.a"; path = "czechEpubReader/sherpa-onnx.xcframework/ios-arm64_x86_64-simulator/libsherpa-onnx.a"; sourceTree = "<group>"; };
+		E8F5995E2FDD9CB400A3CF86 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		E8F599602FDD9CC800A3CF86 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		E8F59C5A2FDDB00B00A3CF86 /* espeak-ng-data */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "espeak-ng-data"; path = "czechEpubReader/espeak-ng-data"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E86973252FDDE21D00ED22E4 /* Exceptions for "czechEpubReader" folder in "czechEpubReader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E885966D2FDC6AD1006D8AFD /* czechEpubReader */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		E8F5994D2FDD9A5C00A3CF86 /* Exceptions for "czechEpubReader" folder in "Embed Frameworks" phase from "czechEpubReader" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			attributesByRelativePath = {
+				"sherpa-onnx.xcframework" = (CodeSignOnCopy, RemoveHeadersOnCopy, );
+			};
+			buildPhase = E8F5994C2FDD9A5B00A3CF86 /* Embed Frameworks */;
+			membershipExceptions = (
+				"sherpa-onnx.xcframework",
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		E88596702FDC6AD1006D8AFD /* czechEpubReader */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E86973252FDDE21D00ED22E4 /* Exceptions for "czechEpubReader" folder in "czechEpubReader" target */,
+				E8F5994D2FDD9A5C00A3CF86 /* Exceptions for "czechEpubReader" folder in "Embed Frameworks" phase from "czechEpubReader" target */,
+			);
+			path = czechEpubReader;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		E885966B2FDC6AD1006D8AFD /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8F599582FDD9A9400A3CF86 /* Foundation.framework in Frameworks */,
+				E88596882FDC6B52006D8AFD /* EPUBKit in Frameworks */,
+				E8F5995F2FDD9CB400A3CF86 /* Metal.framework in Frameworks */,
+				E8F599542FDD9A7E00A3CF86 /* Accelerate.framework in Frameworks */,
+				E8F599612FDD9CC800A3CF86 /* MetalPerformanceShaders.framework in Frameworks */,
+				E8F599502FDD9A7300A3CF86 /* CoreML.framework in Frameworks */,
+				E8F5995D2FDD9BBB00A3CF86 /* libsherpa-onnx.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		E88596652FDC6AD1006D8AFD = {
+			isa = PBXGroup;
+			children = (
+				E8F59C5A2FDDB00B00A3CF86 /* espeak-ng-data */,
+				E8F5995A2FDD9AD500A3CF86 /* czechEpubReaderApp.swift */,
+				E88596702FDC6AD1006D8AFD /* czechEpubReader */,
+				E8F599492FDD9A5B00A3CF86 /* Frameworks */,
+				E885966F2FDC6AD1006D8AFD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		E885966F2FDC6AD1006D8AFD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E8F599382FDC7EA100A3CF86 /* czechEpubReader.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E8F599492FDD9A5B00A3CF86 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				E8F599602FDD9CC800A3CF86 /* MetalPerformanceShaders.framework */,
+				E8F5995E2FDD9CB400A3CF86 /* Metal.framework */,
+				E8F5995C2FDD9B8A00A3CF86 /* libsherpa-onnx.a */,
+				E8F599562FDD9A8F00A3CF86 /* Foundation.framework */,
+				E8F599522FDD9A7B00A3CF86 /* Accelerate.framework */,
+				E8F5994E2FDD9A6800A3CF86 /* CoreML.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E885966D2FDC6AD1006D8AFD /* czechEpubReader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E88596792FDC6AD2006D8AFD /* Build configuration list for PBXNativeTarget "czechEpubReader" */;
+			buildPhases = (
+				E885966A2FDC6AD1006D8AFD /* Sources */,
+				E885966B2FDC6AD1006D8AFD /* Frameworks */,
+				E885966C2FDC6AD1006D8AFD /* Resources */,
+				E8F5994C2FDD9A5B00A3CF86 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E88596702FDC6AD1006D8AFD /* czechEpubReader */,
+			);
+			name = czechEpubReader;
+			packageProductDependencies = (
+				E88596872FDC6B52006D8AFD /* EPUBKit */,
+			);
+			productName = czechEpubReader;
+			productReference = E8F599382FDC7EA100A3CF86 /* czechEpubReader.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E88596662FDC6AD1006D8AFD /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					E885966D2FDC6AD1006D8AFD = {
+						CreatedOnToolsVersion = 26.5;
+					};
+				};
+			};
+			buildConfigurationList = E88596692FDC6AD1006D8AFD /* Build configuration list for PBXProject "czechEpubReader" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = E88596652FDC6AD1006D8AFD;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				E88596862FDC6B52006D8AFD /* XCRemoteSwiftPackageReference "EPUBKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = E885966F2FDC6AD1006D8AFD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E885966D2FDC6AD1006D8AFD /* czechEpubReader */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E885966C2FDC6AD1006D8AFD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8F59C5B2FDDB00B00A3CF86 /* espeak-ng-data in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		E885966A2FDC6AD1006D8AFD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8F5995B2FDD9AD500A3CF86 /* czechEpubReaderApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		E88596772FDC6AD2006D8AFD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = K59J2L3A3Q;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		E88596782FDC6AD2006D8AFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = K59J2L3A3Q;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		E885967A2FDC6AD2006D8AFD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K59J2L3A3Q;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"/Users/jirik/Desktop/Jirikovo/iosProjects/czechEpubReader/czechEpubReader/sherpa-onnx.xcframework/ios-arm64/Headers/**",
+					"$(PROJECT_DIR)/czechEpubReader/sherpa-onnx.xcframework/$(PLATFORM_NAME)-$(ARCHS)/Headers/**",
+				);
+				INFOPLIST_FILE = czechEpubReader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Simple EPUB TTS Reader";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ios-arm64",
+					"$(PROJECT_DIR)/czechEpubReader/ios-arm64",
+					"/Users/jirik/Downloads/build-ios",
+					"3/ios-onnxruntime/onnxruntime.xcframework/ios-arm64/**",
+					"$(PROJECT_DIR)/czechEpubReader/sherpa-onnx.xcframework/ios-arm64_x86_64-simulator",
+					"$(PROJECT_DIR)/czechEpubReader/sherpa-onnx.xcframework/ios-arm64",
+					"$(PROJECT_DIR)/czechEpubReader/onnxruntime.xcframework/ios-arm64",
+					"$(PROJECT_DIR)/czechEpubReader/onnxruntime.xcframework/ios-arm64",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-lc++",
+					"-lsherpa-onnx",
+					"-lsherpa-onnx",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = jirikovo.czechEpubReader;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "/Users/jirik/Desktop/Jirikovo/iosProjects/czechEpubReader/czechEpubReader/czechEpubReader-Bridging-Header.h";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E885967B2FDC6AD2006D8AFD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K59J2L3A3Q;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"/Users/jirik/Desktop/Jirikovo/iosProjects/czechEpubReader/czechEpubReader/sherpa-onnx.xcframework/ios-arm64/Headers/**",
+					"$(PROJECT_DIR)/czechEpubReader/sherpa-onnx.xcframework/$(PLATFORM_NAME)-$(ARCHS)/Headers/**",
+				);
+				INFOPLIST_FILE = czechEpubReader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Simple EPUB TTS Reader";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.books";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ios-arm64",
+					"$(PROJECT_DIR)/czechEpubReader/ios-arm64",
+					"/Users/jirik/Downloads/build-ios",
+					"3/ios-onnxruntime/onnxruntime.xcframework/ios-arm64/**",
+					"$(PROJECT_DIR)/czechEpubReader/sherpa-onnx.xcframework/ios-arm64_x86_64-simulator",
+					"$(PROJECT_DIR)/czechEpubReader/sherpa-onnx.xcframework/ios-arm64",
+					"$(PROJECT_DIR)/czechEpubReader/onnxruntime.xcframework/ios-arm64",
+					"$(PROJECT_DIR)/czechEpubReader/onnxruntime.xcframework/ios-arm64",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-lc++",
+					"-lsherpa-onnx",
+					"-lsherpa-onnx",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = jirikovo.czechEpubReader;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_BRIDGING_HEADER_IS_INTERNAL = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "/Users/jirik/Desktop/Jirikovo/iosProjects/czechEpubReader/czechEpubReader/czechEpubReader-Bridging-Header.h";
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E88596692FDC6AD1006D8AFD /* Build configuration list for PBXProject "czechEpubReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E88596772FDC6AD2006D8AFD /* Debug */,
+				E88596782FDC6AD2006D8AFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E88596792FDC6AD2006D8AFD /* Build configuration list for PBXNativeTarget "czechEpubReader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E885967A2FDC6AD2006D8AFD /* Debug */,
+				E885967B2FDC6AD2006D8AFD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		E88596862FDC6B52006D8AFD /* XCRemoteSwiftPackageReference "EPUBKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/witekbobrowski/EPUBKit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		E88596872FDC6B52006D8AFD /* EPUBKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E88596862FDC6B52006D8AFD /* XCRemoteSwiftPackageReference "EPUBKit" */;
+			productName = EPUBKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E88596662FDC6AD1006D8AFD /* Project object */;
+}
