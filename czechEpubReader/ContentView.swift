@@ -6,9 +6,6 @@ struct ContentView: View {
     @StateObject private var epubManager = EPUBManager()
     @StateObject private var ttsManager  = TTSManager()
 
-    @State private var showCalibration   = false
-    @State private var calibKindleLoc    = ""
-    @State private var calibLocFactor    = 115
     @State private var showFilePicker    = false
     @State private var kindleLocInput    = "0"
     @State private var selectedChapterID: Int? = nil
@@ -74,7 +71,6 @@ struct ContentView: View {
                     startPositionTimer()
                 } else {
                     stopPositionTimer()
-                    // Při zastavení aktualizuj pole jednou
                     if newState == .idle || newState == .paused {
                         syncLocInput()
                     }
@@ -131,18 +127,8 @@ struct ContentView: View {
 
     private var positionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label("Kindle pozice (LOC)", systemImage: "text.cursor")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    showCalibration = true
-                } label: {
-                    Label("Kalibrace", systemImage: "slider.horizontal.3")
-                        .font(.caption)
-                }
-                .buttonStyle(.bordered)
-            }
+            Label("Kindle pozice (LOC)", systemImage: "text.cursor")
+                .font(.headline)
 
             HStack(spacing: 12) {
                 TextField("Kindle LOC", text: $kindleLocInput)
@@ -181,67 +167,10 @@ struct ContentView: View {
                         .lineLimit(2)
                 }
             }
-
-            Text("LOC faktor: \(calibLocFactor) znaků/LOC")
-                .font(.caption2)
-                .foregroundColor(.secondary)
         }
         .padding()
         .background(Color(.secondarySystemBackground))
         .cornerRadius(12)
-        .sheet(isPresented: $showCalibration) {
-            calibrationSheet
-        }
-    }
-
-    private var calibrationSheet: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 20) {
-                Text("Zadej LOC z Kindle na místě kde právě jsi v knize. Aplikace si spočítá správný přepočet.")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Aktuální LOC v Kindle")
-                        .font(.headline)
-                    TextField("např. 1500", text: $calibKindleLoc)
-                        .keyboardType(.numberPad)
-                        .textFieldStyle(.roundedBorder)
-                }
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Odpovídající LOC v aplikaci")
-                        .font(.headline)
-                    TextField("Kindle LOC", text: $kindleLocInput)
-                        .keyboardType(.numberPad)
-                        .textFieldStyle(.roundedBorder)
-                    Text("Nastav v aplikaci stejnou pozici jako v Kindle a vlož LOC číslo z Kindle výše.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-
-                Button {
-                    applyCalibration()
-                    showCalibration = false
-                } label: {
-                    Label("Kalibrovat", systemImage: "checkmark.circle")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(calibKindleLoc.isEmpty || kindleLocInput.isEmpty)
-
-                Spacer()
-            }
-            .padding()
-            .navigationTitle("Kalibrace LOC")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Zavřít") { showCalibration = false }
-                }
-            }
-        }
     }
 
     private var chapterListSection: some View {
@@ -326,7 +255,6 @@ struct ContentView: View {
                 }
                 .buttonStyle(.borderedProminent)
 
-                // Záložka — uloží aktuální LOC
                 Button {
                     let loc = epubManager.kindleLocFromChars(ttsManager.currentPosition)
                     kindleLocInput = String(loc)
@@ -342,9 +270,7 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Persistence
-
-    // MARK: - Position Timer
+    // MARK: - Timer
 
     private func startPositionTimer() {
         stopPositionTimer()
@@ -362,48 +288,28 @@ struct ContentView: View {
         guard ttsManager.currentPosition > 0 else { return }
         let loc = epubManager.kindleLocFromChars(ttsManager.currentPosition)
         kindleLocInput = String(loc)
-        // Ulož pozici
         if let url = lastBookURL {
             BookmarkStore.shared.save(url: url, kindleLoc: loc)
         }
     }
 
-    private func applyCalibration() {
-        guard
-            let kindleLoc = Int(calibKindleLoc), kindleLoc > 0,
-            let appLoc = Int(kindleLocInput), appLoc > 0
-        else { return }
+    // MARK: - Persistence
 
-        // charPosition odpovídající appLoc při starém faktoru
-        let charPos = appLoc * calibLocFactor
-
-        // Nový faktor = charPos / kindleLoc
-        let newFactor = max(1, charPos / kindleLoc)
-        calibLocFactor = newFactor
-        epubManager.locFactor = newFactor
-
-        // Přepočítej kindleLocInput na nový faktor
-        kindleLocInput = String(charPos / newFactor)
-
-        // Ulož faktor
-        UserDefaults.standard.set(newFactor, forKey: "locFactor")
-    }
-
-    /// Obnoví poslední session při spuštění aplikace
     private func restoreLastSession() {
         let savedFactor = UserDefaults.standard.integer(forKey: "locFactor")
         if savedFactor > 0 {
-            calibLocFactor = savedFactor
-            epubManager.locFactor = savedFactor
+            epubManager.applyLocFactor(savedFactor)
         }
         guard let url = BookmarkStore.shared.loadURL() else { return }
         let loc = BookmarkStore.shared.loadKindleLoc()
         lastBookURL = url
         epubManager.load(url: url)
+        if savedFactor > 0 {
+            epubManager.applyLocFactor(savedFactor)
+        }
         kindleLocInput = String(loc)
     }
 
-    /// Uloží aktuální URL knihy a LOC pozici
     private func saveCurrentPosition() {
         guard let url = lastBookURL else { return }
         let loc = Int(kindleLocInput) ?? 0
@@ -421,7 +327,6 @@ struct ContentView: View {
             epubManager.load(url: url)
             kindleLocInput = "0"
             selectedChapterID = nil
-            // Ulož novou knihu s pozicí 0
             BookmarkStore.shared.save(url: url, kindleLoc: 0)
         case .failure(let error):
             epubManager.errorMessage = error.localizedDescription
@@ -433,7 +338,6 @@ struct ContentView: View {
         case .idle:
             let loc = Int(kindleLocInput) ?? 0
             let charPos = epubManager.charsFromKindleLoc(loc)
-            // Předej název knihy a kapitoly pro Lock Screen
             ttsManager.bookTitle = epubManager.bookTitle
             ttsManager.chapterTitle = epubManager.chapter(at: charPos)?.title ?? ""
             ttsManager.startReading(text: epubManager.fullText, fromPosition: charPos)
