@@ -162,12 +162,18 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
         chunks = []
         chunkOffsets = []
         currentChunkIndex = 0
+        audioBuffer = [:]
         state = .idle
         progress = 0
         clearNowPlayingInfo()
     }
 
-    // MARK: - Synthesis Loop
+    // MARK: - Synthesis Loop (s prefetch bufferem)
+
+    // Buffer předsyntetizovaných WAV dat
+    private var audioBuffer: [Int: Data] = [:]   // chunkIndex → WAV data
+    private let bufferSize = 3                    // kolik chunků dopředu syntetizovat
+    private let synthesisQueue = DispatchQueue(label: "tts.synthesis", qos: .userInitiated)
 
     private func synthesizeNextChunk() {
         guard currentChunkIndex < chunks.count else {
@@ -178,53 +184,73 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             return
         }
 
-        let chunk = chunks[currentChunkIndex]
-        let ttsHandle = tts
+        // Pokud máme chunk v bufferu, přehraj ho okamžitě
+        if let wavData = audioBuffer[currentChunkIndex] {
+            audioBuffer.removeValue(forKey: currentChunkIndex)
+            currentPosition = chunkOffsets[safe: currentChunkIndex] ?? currentPosition
+            progress = Double(currentChunkIndex) / Double(max(chunks.count, 1))
+            playWAV(wavData)
+            prefetchUpcoming()
+            return
+        }
 
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self, let handle = ttsHandle else { return }
-
-            // Volání C API pro syntézu
-            let audio = SherpaOnnxOfflineTtsGenerate(handle, chunk, 0, 1.0)
-            defer { SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio) }
-
-            guard let audio = audio, audio.pointee.n > 0 else {
-                DispatchQueue.main.async {
-                    self.currentChunkIndex += 1
-                    self.synthesizeNextChunk()
-                }
+        // Jinak syntetizuj aktuální chunk a zároveň prefetchuj další
+        state = .synthesizing
+        prefetchChunk(index: currentChunkIndex) { [weak self] wavData in
+            guard let self = self else { return }
+            guard let wavData = wavData else {
+                self.currentChunkIndex += 1
+                self.synthesizeNextChunk()
                 return
             }
+            self.currentPosition = self.chunkOffsets[safe: self.currentChunkIndex] ?? self.currentPosition
+            self.progress = Double(self.currentChunkIndex) / Double(max(self.chunks.count, 1))
+            self.playWAV(wavData)
+            self.prefetchUpcoming()
+        }
+    }
 
-            // Převod Float32 samples na pole Swift
-            let count = Int(audio.pointee.n)
-            let samples = Array(UnsafeBufferPointer(start: audio.pointee.samples, count: count))
-            let sr = Int(self.sampleRate)
-
-            DispatchQueue.main.async {
-                self.currentPosition = self.chunkOffsets[self.currentChunkIndex]
-                self.progress = Double(self.currentChunkIndex) / Double(max(self.chunks.count, 1))
-                self.playAudio(samples: samples, sampleRate: sr)
+    /// Syntetizuje chunky dopředu do bufferu
+    private func prefetchUpcoming() {
+        let start = currentChunkIndex + 1
+        let end = min(start + bufferSize, chunks.count)
+        for i in start..<end {
+            guard audioBuffer[i] == nil else { continue }
+            prefetchChunk(index: i) { [weak self] wavData in
+                guard let self = self, let wavData = wavData else { return }
+                self.audioBuffer[i] = wavData
             }
         }
     }
 
-    private func playAudio(samples: [Float], sampleRate: Int) {
-        guard !samples.isEmpty else {
-            currentChunkIndex += 1
-            synthesizeNextChunk()
+    /// Syntetizuje jeden chunk asynchronně
+    private func prefetchChunk(index: Int, completion: @escaping (Data?) -> Void) {
+        guard index < chunks.count, let handle = tts else {
+            completion(nil)
             return
         }
+        let chunk = chunks[index]
+        let sr = Int(sampleRate)
 
-        guard let wavData = floatSamplesToWAV(samples: samples, sampleRate: sampleRate) else {
-            currentChunkIndex += 1
-            synthesizeNextChunk()
-            return
+        synthesisQueue.async { [weak self] in
+            guard let self = self else { completion(nil); return }
+            let audio = SherpaOnnxOfflineTtsGenerate(handle, chunk, 0, 1.0)
+            defer { SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio) }
+
+            guard let audio = audio, audio.pointee.n > 0 else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+
+            let count = Int(audio.pointee.n)
+            let samples = Array(UnsafeBufferPointer(start: audio.pointee.samples, count: count))
+            let wavData = self.floatSamplesToWAV(samples: samples, sampleRate: sr)
+            DispatchQueue.main.async { completion(wavData) }
         }
+    }
 
-        // Aktivuj audio session těsně před přehráváním
+    private func playWAV(_ wavData: Data) {
         try? AVAudioSession.sharedInstance().setActive(true)
-
         do {
             audioPlayer = try AVAudioPlayer(data: wavData)
             audioPlayer?.delegate = self
@@ -239,10 +265,19 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
         }
     }
 
+    private func playAudio(samples: [Float], sampleRate: Int) {
+        guard !samples.isEmpty,
+              let wavData = floatSamplesToWAV(samples: samples, sampleRate: sampleRate) else {
+            currentChunkIndex += 1
+            synthesizeNextChunk()
+            return
+        }
+        playWAV(wavData)
+    }
+
     // AVAudioPlayerDelegate
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         currentChunkIndex += 1
-        state = .synthesizing
         synthesizeNextChunk()
     }
 

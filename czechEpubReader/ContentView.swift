@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var kindleLocInput    = "0"
     @State private var selectedChapterID: Int? = nil
     @State private var lastBookURL: URL? = nil
+    @State private var positionTimer: Timer? = nil
 
     var body: some View {
         NavigationStack {
@@ -67,6 +68,17 @@ struct ContentView: View {
             }
             .onAppear {
                 restoreLastSession()
+            }
+            .onChange(of: ttsManager.state) { newState in
+                if newState == .playing || newState == .synthesizing {
+                    startPositionTimer()
+                } else {
+                    stopPositionTimer()
+                    // Při zastavení aktualizuj pole jednou
+                    if newState == .idle || newState == .paused {
+                        syncLocInput()
+                    }
+                }
             }
         }
     }
@@ -331,6 +343,30 @@ struct ContentView: View {
     }
 
     // MARK: - Persistence
+
+    // MARK: - Position Timer
+
+    private func startPositionTimer() {
+        stopPositionTimer()
+        positionTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
+            syncLocInput()
+        }
+    }
+
+    private func stopPositionTimer() {
+        positionTimer?.invalidate()
+        positionTimer = nil
+    }
+
+    private func syncLocInput() {
+        guard ttsManager.currentPosition > 0 else { return }
+        let loc = epubManager.kindleLocFromChars(ttsManager.currentPosition)
+        kindleLocInput = String(loc)
+        // Ulož pozici
+        if let url = lastBookURL {
+            BookmarkStore.shared.save(url: url, kindleLoc: loc)
+        }
+    }
 
     private func applyCalibration() {
         guard
