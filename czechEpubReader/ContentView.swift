@@ -12,6 +12,19 @@ struct ContentView: View {
     @State private var lastBookURL: URL? = nil
     @State private var positionTimer: Timer? = nil
 
+    // Kalibrace
+    @State private var showCalibration   = false
+    @State private var calibKindleLoc    = ""
+    @State private var calibLocFactor    = 115
+
+    // Skrytí klávesnice
+    @FocusState private var locFieldFocused: Bool
+
+    // Přepínač LOC / procenta
+    enum PositionMode { case loc, percent }
+    @State private var positionMode: PositionMode = .loc
+    @State private var percentInput = "0.0"
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -21,12 +34,48 @@ struct ContentView: View {
                 Divider()
 
                 if epubManager.isLoaded {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 16) {
-                            positionSection
+                    positionSection
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                        .padding(.bottom, 6)
+
+                    Divider()
+
+                    // Náhled čteného textu — fixní výška
+                    textPreviewSection
+                        .padding(.horizontal)
+                        .padding(.vertical, 6)
+
+                    Divider()
+
+                    // Fixní nadpis kapitol
+                    HStack {
+                        Label("Kapitoly", systemImage: "list.bullet")
+                            .font(.headline)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+
+                    // Scrollovatelný seznam kapitol
+                    ScrollViewReader { chapterProxy in
+                        ScrollView {
                             chapterListSection
+                                .padding(.horizontal)
+                                .padding(.bottom)
                         }
-                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .onTapGesture {
+                            locFieldFocused = false
+                        }
+                        .onChange(of: currentReadingChapterID) { chapterID in
+                            if let id = chapterID {
+                                withAnimation(.easeInOut(duration: 0.5)) {
+                                    chapterProxy.scrollTo("chapter_\(id)", anchor: .top)
+                                }
+                            }
+                        }
                     }
 
                     Divider()
@@ -127,32 +176,90 @@ struct ContentView: View {
 
     private var positionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label("Kindle pozice (LOC)", systemImage: "text.cursor")
-                .font(.headline)
+            HStack {
+                Label("Kindle pozice", systemImage: "text.cursor")
+                    .font(.headline)
+                Spacer()
+                Picker("Režim", selection: $positionMode) {
+                    Text("LOC").tag(PositionMode.loc)
+                    Text("%").tag(PositionMode.percent)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 100)
+                Button {
+                    showCalibration = true
+                } label: {
+                    Image(systemName: "slider.horizontal.3")
+                }
+                .buttonStyle(.bordered)
+            }
 
-            HStack(spacing: 12) {
-                TextField("Kindle LOC", text: $kindleLocInput)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 140)
-                    .onChange(of: kindleLocInput) { newValue in
-                        if let loc = Int(newValue), let url = lastBookURL {
-                            BookmarkStore.shared.save(url: url, kindleLoc: loc)
+            HStack(spacing: 8) {
+                if positionMode == .loc {
+                    TextField("Kindle LOC", text: $kindleLocInput)
+                        .keyboardType(.numberPad)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($locFieldFocused)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Hotovo") { locFieldFocused = false }
+                            }
                         }
-                    }
+                        .onChange(of: kindleLocInput) { newValue in
+                            if let loc = Int(newValue) {
+                                let charPos = epubManager.charsFromKindleLoc(loc)
+                                let pct = epubManager.fullText.count > 0
+                                    ? Double(charPos) / Double(epubManager.fullText.count) * 100 : 0
+                                percentInput = String(format: "%.1f", pct)
+                                if let url = lastBookURL {
+                                    BookmarkStore.shared.save(url: url, kindleLoc: loc)
+                                }
+                            }
+                        }
+                } else {
+                    TextField("% (0.0–100.0)", text: $percentInput)
+                        .keyboardType(.decimalPad)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($locFieldFocused)
+                        .toolbar {
+                            ToolbarItemGroup(placement: .keyboard) {
+                                Spacer()
+                                Button("Hotovo") { locFieldFocused = false }
+                            }
+                        }
+                        .onChange(of: percentInput) { newValue in
+                            let normalized = newValue.replacingOccurrences(of: ",", with: ".")
+                            if let pct = Double(normalized), pct >= 0, pct <= 100 {
+                                let charPos = Int(pct / 100.0 * Double(epubManager.fullText.count))
+                                let loc = epubManager.kindleLocFromChars(charPos)
+                                kindleLocInput = String(loc)
+                                if let url = lastBookURL {
+                                    BookmarkStore.shared.save(url: url, kindleLoc: loc)
+                                }
+                            }
+                        }
+                }
 
+                // Tlačítko Kapitola — stejně široké jako přepínač + kalibrační tlačítko
                 Menu {
                     ForEach(epubManager.chapters) { chapter in
                         Button {
                             let loc = epubManager.kindleLocFromChars(chapter.characterOffset)
                             kindleLocInput = String(loc)
+                            let pct = epubManager.fullText.count > 0
+                                ? Double(chapter.characterOffset) / Double(epubManager.fullText.count) * 100 : 0
+                            percentInput = String(format: "%.1f", pct)
                             selectedChapterID = chapter.id
+                            locFieldFocused = false
                         } label: {
-                            Text(chapter.title)
+                            Label("Kapitola", systemImage: "list.number")
+                                .frame(maxWidth: .infinity)
                         }
                     }
                 } label: {
                     Label("Kapitola", systemImage: "list.number")
+                        .frame(width: 128)
                 }
                 .buttonStyle(.bordered)
             }
@@ -160,43 +267,139 @@ struct ContentView: View {
             if let loc = Int(kindleLocInput) {
                 let charPos = epubManager.charsFromKindleLoc(loc)
                 if charPos < epubManager.fullText.count {
-                    let preview = String(epubManager.text(from: charPos).prefix(80))
-                    Text("LOC \(loc) / \(percentStr(charPos)) — \(preview)…")
+                    Text("LOC \(loc) / \(percentStr(charPos))")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                        .lineLimit(2)
                 }
             }
         }
-        .padding()
+        .sheet(isPresented: $showCalibration) {
+            calibrationSheet
+        }
+    }
+
+    private var textPreviewSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if ttsManager.state == .playing || ttsManager.state == .synthesizing || ttsManager.state == .paused,
+               !ttsManager.currentChunkText.isEmpty {
+                // Aktuální věta
+                Text(ttsManager.currentChunkText)
+                    .font(.body)
+                    .lineSpacing(4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Příští věta šedě
+                let postPos = ttsManager.currentChunkOffset + ttsManager.currentChunkText.count
+                if postPos < epubManager.fullText.count {
+                    Text(epubManager.text(from: postPos).prefix(150).description)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                let charPos = currentCharPosition
+                if charPos < epubManager.fullText.count {
+                    Text(epubManager.text(from: charPos).prefix(300).description)
+                        .font(.body)
+                        .foregroundColor(.primary)
+                        .lineSpacing(4)
+                        .lineLimit(4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
         .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var calibrationSheet: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Otevři Kindle na konkrétním místě, zapamatuj si LOC číslo a nastav stejné místo v aplikaci.")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("LOC v Kindle")
+                        .font(.headline)
+                    TextField("např. 2906", text: $calibKindleLoc)
+                        .keyboardType(.numberPad)
+                        .textFieldStyle(.roundedBorder)
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("LOC v aplikaci (aktuální)")
+                        .font(.headline)
+                    Text(kindleLocInput.isEmpty ? "0" : kindleLocInput)
+                        .font(.title2)
+                        .bold()
+                        .foregroundColor(.accentColor)
+                    Text("Nastav v aplikaci stejné místo jako v Kindle, pak zadej Kindle LOC výše.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Button {
+                    applyCalibration()
+                    showCalibration = false
+                } label: {
+                    Label("Kalibrovat", systemImage: "checkmark.circle")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(calibKindleLoc.isEmpty)
+
+                Spacer()
+            }
+            .padding()
+            .navigationTitle("Kalibrace LOC")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Zavřít") { showCalibration = false }
+                }
+            }
+        }
+    }
+
+    private var currentReadingChapterID: Int? {
+        epubManager.chapter(at: ttsManager.currentPosition)?.id
     }
 
     private var chapterListSection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label("Kapitoly", systemImage: "list.bullet")
-                .font(.headline)
-                .padding(.bottom, 4)
-
             ForEach(epubManager.chapters) { chapter in
+                let isCurrentlyReading = currentReadingChapterID == chapter.id
+                let isSelected = selectedChapterID == chapter.id
+
                 Button {
                     let loc = epubManager.kindleLocFromChars(chapter.characterOffset)
                     kindleLocInput = String(loc)
+                    let pct = epubManager.fullText.count > 0
+                        ? Double(chapter.characterOffset) / Double(epubManager.fullText.count) * 100 : 0
+                    percentInput = String(format: "%.1f", pct)
                     selectedChapterID = chapter.id
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(chapter.title)
-                                .font(.subheadline)
-                                .foregroundColor(.primary)
+                                .font(isCurrentlyReading ? .subheadline.bold() : .subheadline)
+                                .foregroundColor(isCurrentlyReading ? .accentColor : .primary)
                                 .lineLimit(1)
                             Text("LOC \(epubManager.kindleLocFromChars(chapter.characterOffset))")
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
                         Spacer()
-                        if selectedChapterID == chapter.id {
+                        if isCurrentlyReading {
+                            Image(systemName: "speaker.wave.2.fill")
+                                .foregroundColor(.accentColor)
+                                .font(.caption)
+                        } else if isSelected {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundColor(.accentColor)
                         }
@@ -204,17 +407,17 @@ struct ContentView: View {
                     .padding(.vertical, 8)
                     .padding(.horizontal, 12)
                     .background(
-                        selectedChapterID == chapter.id
-                        ? Color.accentColor.opacity(0.1)
-                        : Color(.tertiarySystemBackground)
+                        isCurrentlyReading
+                        ? Color.accentColor.opacity(0.15)
+                        : isSelected
+                            ? Color.accentColor.opacity(0.08)
+                            : Color(.tertiarySystemBackground)
                     )
                     .cornerRadius(8)
                 }
+                .id("chapter_\(chapter.id)")
             }
         }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
     }
 
     private var playbackControls: some View {
@@ -267,7 +470,91 @@ struct ContentView: View {
                 .buttonStyle(.bordered)
                 .disabled(ttsManager.state == .idle)
             }
+
+            // Tlačítka přeskoku
+            HStack(spacing: 8) {
+                Button {
+                    skipPosition(forward: false)
+                } label: {
+                    Label(skipLabel(forward: false), systemImage: "chevron.left")
+                        .font(.caption)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 28)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    skipPosition(forward: true)
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(skipLabel(forward: true))
+                            .font(.caption)
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 28)
+                }
+                .buttonStyle(.bordered)
+            }
         }
+    }
+
+    // MARK: - Kalibrace
+
+    private func skipLabel(forward: Bool) -> String {
+        switch positionMode {
+        case .loc:     return forward ? "+10 LOC" : "-10 LOC"
+        case .percent: return forward ? "+0.1%" : "-0.1%"
+        }
+    }
+
+    private func skipPosition(forward: Bool) {
+        let direction: Double = forward ? 1 : -1
+        switch positionMode {
+        case .loc:
+            let current = Int(kindleLocInput) ?? 0
+            let newLoc = max(0, min(current + Int(direction * 10), epubManager.totalKindleLoc))
+            kindleLocInput = String(newLoc)
+            let charPos = epubManager.charsFromKindleLoc(newLoc)
+            let pct = epubManager.fullText.count > 0
+                ? Double(charPos) / Double(epubManager.fullText.count) * 100 : 0
+            percentInput = String(format: "%.1f", pct)
+        case .percent:
+            let current = Double(percentInput.replacingOccurrences(of: ",", with: ".")) ?? 0
+            let newPct = max(0, min(current + direction * 0.1, 100))
+            percentInput = String(format: "%.1f", newPct)
+            let charPos = Int(newPct / 100.0 * Double(epubManager.fullText.count))
+            let loc = epubManager.kindleLocFromChars(charPos)
+            kindleLocInput = String(loc)
+        }
+        // Ulož novou pozici
+        if let url = lastBookURL, let loc = Int(kindleLocInput) {
+            BookmarkStore.shared.save(url: url, kindleLoc: loc)
+        }
+    }
+
+    private func applyCalibration() {
+        guard
+            let kindleLoc = Int(calibKindleLoc), kindleLoc > 0,
+            let appLoc = Int(kindleLocInput), appLoc > 0
+        else { return }
+
+        // charPos při aktuálním appLoc
+        let charPos = epubManager.charsFromKindleLoc(appLoc)
+        guard charPos > 0 else { return }
+
+        // Nový faktor
+        let newFactor = max(1, charPos / kindleLoc)
+        calibLocFactor = newFactor
+        epubManager.applyLocFactor(newFactor)
+
+        // Přepočítej vstupní pole na nový LOC
+        kindleLocInput = String(epubManager.kindleLocFromChars(charPos))
+
+        // Ulož
+        UserDefaults.standard.set(newFactor, forKey: "locFactor")
+        print("Kalibrace: nový faktor \(newFactor), LOC \(kindleLocInput)")
     }
 
     // MARK: - Timer
@@ -284,10 +571,20 @@ struct ContentView: View {
         positionTimer = nil
     }
 
+    private var currentCharPosition: Int {
+        if let loc = Int(kindleLocInput) {
+            return epubManager.charsFromKindleLoc(loc)
+        }
+        return 0
+    }
+
     private func syncLocInput() {
         guard ttsManager.currentPosition > 0 else { return }
         let loc = epubManager.kindleLocFromChars(ttsManager.currentPosition)
         kindleLocInput = String(loc)
+        let pct = epubManager.fullText.count > 0
+            ? Double(ttsManager.currentPosition) / Double(epubManager.fullText.count) * 100 : 0
+        percentInput = String(format: "%.1f", pct)
         if let url = lastBookURL {
             BookmarkStore.shared.save(url: url, kindleLoc: loc)
         }
@@ -308,6 +605,11 @@ struct ContentView: View {
             epubManager.applyLocFactor(savedFactor)
         }
         kindleLocInput = String(loc)
+        // Synchronizuj procenta po načtení
+        let charPos = epubManager.charsFromKindleLoc(loc)
+        let pct = epubManager.fullText.count > 0
+            ? Double(charPos) / Double(epubManager.fullText.count) * 100 : 0
+        percentInput = String(format: "%.1f", pct)
     }
 
     private func saveCurrentPosition() {

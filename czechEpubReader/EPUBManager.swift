@@ -250,17 +250,23 @@ class EPUBManager: ObservableObject {
     }
 
     private func inferTitle(html: String, index: Int) -> String {
-        for tag in ["<title>", "<h1>", "<h2>"] {
-            let closeTag = tag.replacingOccurrences(of: "<", with: "</")
+        // Hledej standardní nadpisy h1-h3
+        for tag in ["<h1", "<h2", "<h3"] {
             if let open = html.range(of: tag, options: .caseInsensitive),
-               let close = html.range(of: closeTag, options: [.caseInsensitive, .backwards]) {
-                let content = String(html[open.upperBound..<close.lowerBound])
-                let stripped = content
-                    .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                if !stripped.isEmpty { return stripped }
+               let tagEnd = html.range(of: ">", range: open.upperBound..<html.endIndex) {
+                let closeTag = "</" + tag.dropFirst()
+                if let close = html.range(of: closeTag, options: .caseInsensitive, range: tagEnd.upperBound..<html.endIndex) {
+                    let content = String(html[tagEnd.upperBound..<close.lowerBound])
+                    let stripped = content
+                        .replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !stripped.isEmpty && stripped.count < 100 && stripped.count > 2 {
+                        return stripped
+                    }
+                }
             }
         }
+        // Fallback — jednoduché pořadí
         return "Kapitola \(index)"
     }
 }

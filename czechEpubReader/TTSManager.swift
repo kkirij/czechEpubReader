@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import AVFoundation
 import MediaPlayer
+import NaturalLanguage
 
 // MARK: - TTS State
 enum TTSState {
@@ -18,6 +19,16 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
     @Published var progress: Double = 0
     @Published var currentPosition: Int = 0
     @Published var errorMessage: String? = nil
+
+    // Aktuálně čtený chunk text a pozice v fullText
+    @Published var currentChunkText: String = ""
+    @Published var currentChunkOffset: Int = 0   // char offset chunku v fullText
+    @Published var currentWordIndex: Int = 0      // index aktuálně čteného slova v chunku
+
+    // Slova aktuálního chunku pro zvýraznění
+    private(set) var currentChunkWords: [String] = []
+    private(set) var currentChunkWordOffsets: [Int] = []  // char offset každého slova v chunku
+    private var wordTimer: Timer?
 
     // Sherpa-onnx C API handle
     private var tts: OpaquePointer? = nil
@@ -146,7 +157,25 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
         synthesizeNextChunk()
     }
 
+    func stop() {
+        wordTimer?.invalidate()
+        wordTimer = nil
+        audioPlayer?.stop()
+        audioPlayer = nil
+        chunks = []
+        chunkOffsets = []
+        currentChunkIndex = 0
+        audioBuffer = [:]
+        currentChunkText = ""
+        currentChunkWords = []
+        currentWordIndex = 0
+        state = .idle
+        progress = 0
+        clearNowPlayingInfo()
+    }
+
     func pause() {
+        wordTimer?.invalidate()
         audioPlayer?.pause()
         state = .paused
     }
@@ -154,18 +183,7 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
     func resume() {
         audioPlayer?.play()
         state = .playing
-    }
-
-    func stop() {
-        audioPlayer?.stop()
-        audioPlayer = nil
-        chunks = []
-        chunkOffsets = []
-        currentChunkIndex = 0
-        audioBuffer = [:]
-        state = .idle
-        progress = 0
-        clearNowPlayingInfo()
+        startWordTimer()
     }
 
     // MARK: - Synthesis Loop (s prefetch bufferem)
@@ -188,6 +206,8 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
         if let wavData = audioBuffer[currentChunkIndex] {
             audioBuffer.removeValue(forKey: currentChunkIndex)
             currentPosition = chunkOffsets[safe: currentChunkIndex] ?? currentPosition
+            currentChunkOffset = currentPosition
+            currentChunkText = chunks[safe: currentChunkIndex] ?? ""
             progress = Double(currentChunkIndex) / Double(max(chunks.count, 1))
             playWAV(wavData)
             prefetchUpcoming()
@@ -204,6 +224,8 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
                 return
             }
             self.currentPosition = self.chunkOffsets[safe: self.currentChunkIndex] ?? self.currentPosition
+            self.currentChunkOffset = self.currentPosition
+            self.currentChunkText = self.chunks[safe: self.currentChunkIndex] ?? ""
             self.progress = Double(self.currentChunkIndex) / Double(max(self.chunks.count, 1))
             self.playWAV(wavData)
             self.prefetchUpcoming()
@@ -258,10 +280,52 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             audioPlayer?.play()
             state = .playing
             updateNowPlayingInfo(chunkText: chunks[safe: currentChunkIndex] ?? "")
+            startWordTimer()
         } catch {
             errorMessage = "Chyba přehrávání: \(error.localizedDescription)"
             currentChunkIndex += 1
             synthesizeNextChunk()
+        }
+    }
+
+    private func startWordTimer() {
+        wordTimer?.invalidate()
+        currentWordIndex = 0
+
+        // Rozlož chunk na slova s jejich offsety
+        let text = currentChunkText
+        var words: [String] = []
+        var offsets: [Int] = []
+        var idx = text.startIndex
+        while idx < text.endIndex {
+            // Přeskoč mezery
+            while idx < text.endIndex && text[idx].isWhitespace { idx = text.index(after: idx) }
+            guard idx < text.endIndex else { break }
+            let wordStart = idx
+            let charOffset = text.distance(from: text.startIndex, to: wordStart)
+            // Najdi konec slova
+            while idx < text.endIndex && !text[idx].isWhitespace { idx = text.index(after: idx) }
+            words.append(String(text[wordStart..<idx]))
+            offsets.append(charOffset)
+        }
+        currentChunkWords = words
+        currentChunkWordOffsets = offsets
+
+        guard !words.isEmpty, let duration = audioPlayer?.duration, duration > 0 else { return }
+
+        // Průměrná délka slova v sekundách
+        let interval = duration / Double(words.count)
+
+        wordTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] timer in
+            guard let self = self else { timer.invalidate(); return }
+            if self.currentWordIndex < words.count - 1 {
+                self.currentWordIndex += 1
+                // Aktualizuj currentPosition na úrovni slova
+                let wordCharOffset = offsets[self.currentWordIndex]
+                self.currentPosition = self.currentChunkOffset + wordCharOffset
+            } else {
+                timer.invalidate()
+            }
         }
     }
 
@@ -344,22 +408,35 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
 
     private func splitIntoChunks(_ text: String, maxLength: Int) -> [String] {
         var chunks: [String] = []
-        var current = ""
 
-        let sentences = text.components(separatedBy: CharacterSet(charactersIn: ".!?"))
-        for sentence in sentences {
-            let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-
-            if current.count + trimmed.count + 2 > maxLength {
-                if !current.isEmpty { chunks.append(current) }
-                current = trimmed + "."
-            } else {
-                current += (current.isEmpty ? "" : " ") + trimmed + "."
+        // Rozdělení na věty — každá věta = jeden chunk
+        // Použij NLTokenizer pro přesnější rozdělení na věty
+        let tokenizer = NLTokenizer(unit: .sentence)
+        tokenizer.string = text
+        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
+            let sentence = String(text[range]).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !sentence.isEmpty {
+                // Pokud je věta příliš dlouhá, rozděl ji dál
+                if sentence.count > maxLength {
+                    let sub = sentence.components(separatedBy: CharacterSet(charactersIn: ",;:"))
+                    var current = ""
+                    for part in sub {
+                        let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if current.count + trimmed.count > maxLength {
+                            if !current.isEmpty { chunks.append(current) }
+                            current = trimmed
+                        } else {
+                            current += (current.isEmpty ? "" : ", ") + trimmed
+                        }
+                    }
+                    if !current.isEmpty { chunks.append(current) }
+                } else {
+                    chunks.append(sentence)
+                }
             }
+            return true
         }
-        if !current.isEmpty { chunks.append(current) }
-        return chunks
+        return chunks.isEmpty ? [text] : chunks
     }
 
     private func buildOffsets(chunks: [String], baseOffset: Int) -> [Int] {
