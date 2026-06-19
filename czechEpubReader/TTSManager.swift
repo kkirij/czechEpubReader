@@ -251,7 +251,9 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             completion(nil)
             return
         }
-        let chunk = chunks[index]
+        // Preprocessing textu pro přirozenější zvuk
+        let rawChunk = chunks[index]
+        let chunk = TTSPreprocessor.process(rawChunk)
         let sr = Int(sampleRate)
 
         synthesisQueue.async { [weak self] in

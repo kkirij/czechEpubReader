@@ -154,7 +154,7 @@ struct TTSPreprocessor {
             // Znaky které způsobují problémy
             ("…", "."),
             ("„", ""),
-            (""", ""),
+            ("\"", ""),
             ("«", ""),
             ("»", ""),
             ("\u{00AD}", ""),  // soft hyphen
