@@ -1,0 +1,37 @@
+{
+  "name": "Jirik's Apps",
+  "identifier": "com.jirikkiral.source",
+  "sourceURL": "https://raw.githubusercontent.com/kkirij/czechEpubReader/main/apps.json",
+  "apps": [
+    {
+      "name": "czechEpubReader",
+      "bundleIdentifier": "com.jirikkiral.czechEpubReader",
+      "developerName": "Jirik",
+      "subtitle": "Hlasitá čtečka EPUB knih v češtině",
+      "localizedDescription": "Offline hlasitá čtečka EPUB knih v češtině.\n\nFunkce:\n• Offline TTS v češtině (Piper cs-CZ-jirka)\n• Podpora Kindle LOC pozic\n• Online TTS přes OpenAI (volitelné)\n• Automatické ukládání pozice\n• Přehrávání při zamčené obrazovce\n• Podpora Bluetooth sluchátek",
+      "iconURL": "https://raw.githubusercontent.com/kkirij/czechEpubReader/main/icon.png",
+      "tintColor": "4A90D9",
+      "screenshots": [],
+      "versions": [
+        {
+          "version": "1.0.0",
+          "date": "2026-06-20",
+          "localizedDescription": "První vydání",
+          "downloadURL": "https://github.com/kkirij/czechEpubReader/releases/download/v1.0.0/czechEpubReader.ipa",
+          "size": 50000000,
+          "minOSVersion": "16.0"
+        }
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": [
+          {
+            "name": "Soubory",
+            "usageDescription": "Aplikace potřebuje přístup k souborům pro otevření EPUB knih."
+          }
+        ]
+      }
+    }
+  ],
+  "news": []
+}
