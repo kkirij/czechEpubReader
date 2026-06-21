@@ -45,17 +45,43 @@ class OpenAITTSEngine {
         self.apiKey = apiKey
     }
 
-    /// Syntetizuje text a vrátí MP3 data
+    /// Syntetizuje text a vrátí MP3 data — s automatickým retry při rate limitu
     func synthesize(text: String) async throws -> Data {
         guard !apiKey.isEmpty else {
             throw TTSError.missingAPIKey
         }
 
+        var lastError: Error = TTSError.networkError("Neznámá chyba")
+        let maxRetries = 3
+
+        for attempt in 0..<maxRetries {
+            if attempt > 0 {
+                // Exponenciální zpoždění: 1s, 2s, 4s
+                let delay = UInt64(pow(2.0, Double(attempt))) * 1_000_000_000
+                try await Task.sleep(nanoseconds: delay)
+            }
+
+            do {
+                return try await performRequest(text: text)
+            } catch TTSError.rateLimited(let retryAfter) {
+                // Počkej doporučenou dobu nebo 60s
+                let wait = UInt64(retryAfter > 0 ? retryAfter : 60) * 1_000_000_000
+                try await Task.sleep(nanoseconds: wait)
+                lastError = TTSError.rateLimited(retryAfter: retryAfter)
+            } catch {
+                throw error  // jiné chyby rovnou vyhodí
+            }
+        }
+        throw lastError
+    }
+
+    private func performRequest(text: String) async throws -> Data {
         let url = URL(string: "https://api.openai.com/v1/audio/speech")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 30
 
         let body: [String: Any] = [
             "model": model.rawValue,
@@ -72,16 +98,19 @@ class OpenAITTSEngine {
             throw TTSError.networkError("Neplatná odpověď serveru")
         }
 
-        if httpResponse.statusCode == 401 {
+        switch httpResponse.statusCode {
+        case 200:
+            return data
+        case 401:
             throw TTSError.invalidAPIKey
-        }
-
-        if httpResponse.statusCode != 200 {
+        case 429:
+            // Přečti Retry-After header
+            let retryAfter = Int(httpResponse.value(forHTTPHeaderField: "Retry-After") ?? "60") ?? 60
+            throw TTSError.rateLimited(retryAfter: retryAfter)
+        default:
             let errorText = String(data: data, encoding: .utf8) ?? "Neznámá chyba"
             throw TTSError.apiError(httpResponse.statusCode, errorText)
         }
-
-        return data
     }
 
     enum TTSError: LocalizedError {
@@ -89,6 +118,7 @@ class OpenAITTSEngine {
         case invalidAPIKey
         case networkError(String)
         case apiError(Int, String)
+        case rateLimited(retryAfter: Int)
 
         var errorDescription: String? {
             switch self {
@@ -100,6 +130,8 @@ class OpenAITTSEngine {
                 return "Chyba sítě: \(msg)"
             case .apiError(let code, let msg):
                 return "OpenAI chyba \(code): \(msg)"
+            case .rateLimited(let seconds):
+                return "OpenAI rate limit — čekám \(seconds)s a zkouším znovu."
             }
         }
     }

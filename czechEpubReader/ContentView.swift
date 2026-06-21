@@ -6,8 +6,10 @@ struct ContentView: View {
     @StateObject private var epubManager = EPUBManager()
     @StateObject private var ttsManager  = TTSManager()
 
-    @State private var showFilePicker    = false
-    @State private var kindleLocInput    = "0"
+    @State private var showSettings       = false
+    @State private var showFilePicker     = false
+    @State private var showError          = false
+    @State private var kindleLocInput     = "0"
     @State private var selectedChapterID: Int? = nil
     @State private var lastBookURL: URL? = nil
     @State private var positionTimer: Timer? = nil
@@ -96,6 +98,13 @@ struct ContentView: View {
                         Label("Otevřít EPUB", systemImage: "book.badge.plus")
                     }
                 }
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showSettings = true
+                    } label: {
+                        Label("Nastavení", systemImage: "gear")
+                    }
+                }
             }
             .fileImporter(
                 isPresented: $showFilePicker,
@@ -104,25 +113,32 @@ struct ContentView: View {
             ) { result in
                 handleFilePick(result)
             }
-            .alert("Chyba", isPresented: .constant(errorMessage != nil)) {
-                Button("OK") {
+            .alert("Chyba", isPresented: $showError) {
+                Button("OK", role: .cancel) {
                     epubManager.errorMessage = nil
-                    ttsManager.errorMessage  = nil
+                    ttsManager.errorMessage = nil
+                    showError = false
                 }
             } message: {
                 Text(errorMessage ?? "")
             }
+            .onChange(of: errorMessage) { msg in
+                if msg != nil { showError = true }
+            }
             .onAppear {
                 restoreLastSession()
             }
+            .sheet(isPresented: $showSettings) {
+                SettingsView(ttsManager: ttsManager)
+            }
             .onChange(of: ttsManager.state) { newState in
-                if newState == .playing || newState == .synthesizing {
+                let isActive = newState == .playing || newState == .synthesizing
+                let isIdle = newState == .idle || newState == .paused
+                if isActive {
                     startPositionTimer()
                 } else {
                     stopPositionTimer()
-                    if newState == .idle || newState == .paused {
-                        syncLocInput()
-                    }
+                    if isIdle { syncLocInput() }
                 }
             }
         }
@@ -288,23 +304,23 @@ struct ContentView: View {
                     .lineSpacing(4)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Příští věta šedě
+                // Příští věta šedě — 3 řádky
                 let postPos = ttsManager.currentChunkOffset + ttsManager.currentChunkText.count
                 if postPos < epubManager.fullText.count {
-                    Text(epubManager.text(from: postPos).prefix(150).description)
+                    Text(epubManager.text(from: postPos).prefix(220).description)
                         .font(.body)
                         .foregroundColor(.secondary)
-                        .lineLimit(2)
+                        .lineLimit(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
                 let charPos = currentCharPosition
                 if charPos < epubManager.fullText.count {
-                    Text(epubManager.text(from: charPos).prefix(300).description)
+                    Text(epubManager.text(from: charPos).prefix(400).description)
                         .font(.body)
                         .foregroundColor(.primary)
                         .lineSpacing(4)
-                        .lineLimit(4)
+                        .lineLimit(5)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -596,6 +612,21 @@ struct ContentView: View {
         let savedFactor = UserDefaults.standard.integer(forKey: "locFactor")
         if savedFactor > 0 {
             epubManager.applyLocFactor(savedFactor)
+        }
+
+        // Obnov OpenAI nastavení
+        let apiKey = UserDefaults.standard.string(forKey: "openai_api_key") ?? ""
+        if !apiKey.isEmpty {
+            let engine = OpenAITTSEngine(apiKey: apiKey)
+            engine.voice = OpenAITTSEngine.Voice(
+                rawValue: UserDefaults.standard.string(forKey: "openai_voice") ?? "onyx"
+            ) ?? .onyx
+            engine.model = OpenAITTSEngine.Model(
+                rawValue: UserDefaults.standard.string(forKey: "openai_model") ?? "tts-1-hd"
+            ) ?? .tts1HD
+            let speed = UserDefaults.standard.double(forKey: "openai_speed")
+            engine.speed = speed > 0 ? speed : 1.0
+            ttsManager.openAIEngine = engine
         }
         guard let url = BookmarkStore.shared.loadURL() else { return }
         let loc = BookmarkStore.shared.loadKindleLoc()

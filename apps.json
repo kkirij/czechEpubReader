@@ -8,7 +8,7 @@
       "bundleIdentifier": "com.jirikkiral.czechEpubReader",
       "developerName": "Jirik",
       "subtitle": "Hlasitá čtečka EPUB knih v češtině",
-      "localizedDescription": "Offline hlasitá čtečka EPUB knih v češtině.\n\nFunkce:\n• Offline TTS v češtině (Piper cs-CZ-jirka)\n• Podpora Kindle LOC pozic\n• Online TTS přes OpenAI (volitelné)\n• Automatické ukládání pozice\n• Přehrávání při zamčené obrazovce\n• Podpora Bluetooth sluchátek",
+      "localizedDescription": "Offline i online hlasitá čtečka EPUB knih v češtině.\n\nFunkce:\n• Offline TTS v češtině (Piper cs-CZ-jirka)\n• Podpora Kindle LOC pozic\n• Online TTS přes OpenAI (volitelné)\n• Automatické ukládání pozice\n• Přehrávání při zamčené obrazovce\n• Přehrávání v online mode pomocí OpenAI TTS (nutný vlastní API klíč).",
       "iconURL": "https://raw.githubusercontent.com/kkirij/czechEpubReader/main/icon.png",
       "tintColor": "4A90D9",
       "screenshots": [],

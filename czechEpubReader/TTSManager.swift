@@ -12,6 +12,12 @@ enum TTSState {
     case paused
 }
 
+// MARK: - TTS Engine Type
+enum TTSEngineType {
+    case sherpaOnnx
+    case openAI
+}
+
 // MARK: - TTS Manager
 class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
 
@@ -22,12 +28,16 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
 
     // Aktuálně čtený chunk text a pozice v fullText
     @Published var currentChunkText: String = ""
-    @Published var currentChunkOffset: Int = 0   // char offset chunku v fullText
-    @Published var currentWordIndex: Int = 0      // index aktuálně čteného slova v chunku
+    @Published var currentChunkOffset: Int = 0
+    @Published var currentWordIndex: Int = 0
+
+    // Engine
+    @Published var engineType: TTSEngineType = .sherpaOnnx
+    var openAIEngine: OpenAITTSEngine? = nil
 
     // Slova aktuálního chunku pro zvýraznění
     private(set) var currentChunkWords: [String] = []
-    private(set) var currentChunkWordOffsets: [Int] = []  // char offset každého slova v chunku
+    private(set) var currentChunkWordOffsets: [Int] = []
     private var wordTimer: Timer?
 
     // Sherpa-onnx C API handle
@@ -189,8 +199,10 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
     // MARK: - Synthesis Loop (s prefetch bufferem)
 
     // Buffer předsyntetizovaných WAV dat
-    private var audioBuffer: [Int: Data] = [:]   // chunkIndex → WAV data
-    private let bufferSize = 3                    // kolik chunků dopředu syntetizovat
+    private var audioBuffer: [Int: Data] = [:]
+    private var bufferSize: Int {
+        engineType == .openAI ? 1 : 3  // OpenAI: 1 dopředu, Piper: 3
+    }
     private let synthesisQueue = DispatchQueue(label: "tts.synthesis", qos: .userInitiated)
 
     private func synthesizeNextChunk() {
@@ -202,6 +214,8 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             return
         }
 
+        print("TTS: synthesizeNextChunk index=\(currentChunkIndex), engine=\(engineType), bufferHit=\(audioBuffer[currentChunkIndex] != nil)")
+
         // Pokud máme chunk v bufferu, přehraj ho okamžitě
         if let wavData = audioBuffer[currentChunkIndex] {
             audioBuffer.removeValue(forKey: currentChunkIndex)
@@ -209,16 +223,17 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             currentChunkOffset = currentPosition
             currentChunkText = chunks[safe: currentChunkIndex] ?? ""
             progress = Double(currentChunkIndex) / Double(max(chunks.count, 1))
-            playWAV(wavData)
+            playAudioData(wavData)
             prefetchUpcoming()
             return
         }
 
-        // Jinak syntetizuj aktuální chunk a zároveň prefetchuj další
+        // Jinak syntetizuj aktuální chunk
         state = .synthesizing
         prefetchChunk(index: currentChunkIndex) { [weak self] wavData in
             guard let self = self else { return }
             guard let wavData = wavData else {
+                print("TTS: chunk \(self.currentChunkIndex) vrátil nil, přeskakuji")
                 self.currentChunkIndex += 1
                 self.synthesizeNextChunk()
                 return
@@ -227,7 +242,7 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             self.currentChunkOffset = self.currentPosition
             self.currentChunkText = self.chunks[safe: self.currentChunkIndex] ?? ""
             self.progress = Double(self.currentChunkIndex) / Double(max(self.chunks.count, 1))
-            self.playWAV(wavData)
+            self.playAudioData(wavData)
             self.prefetchUpcoming()
         }
     }
@@ -247,36 +262,61 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
 
     /// Syntetizuje jeden chunk asynchronně
     private func prefetchChunk(index: Int, completion: @escaping (Data?) -> Void) {
-        guard index < chunks.count, let handle = tts else {
-            completion(nil)
-            return
-        }
-        // Preprocessing textu pro přirozenější zvuk
+        guard index < chunks.count else { completion(nil); return }
+
         let rawChunk = chunks[index]
-        let chunk = TTSPreprocessor.process(rawChunk)
-        let sr = Int(sampleRate)
+        let chunk = rawChunk  // TTSPreprocessor.process(rawChunk) — vypnuto
 
-        synthesisQueue.async { [weak self] in
-            guard let self = self else { completion(nil); return }
-            let audio = SherpaOnnxOfflineTtsGenerate(handle, chunk, 0, 1.0)
-            defer { SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio) }
-
-            guard let audio = audio, audio.pointee.n > 0 else {
-                DispatchQueue.main.async { completion(nil) }
-                return
+        switch engineType {
+        case .sherpaOnnx:
+            guard let handle = tts else { completion(nil); return }
+            let sr = Int(sampleRate)
+            synthesisQueue.async { [weak self] in
+                guard let self = self else { completion(nil); return }
+                let audio = SherpaOnnxOfflineTtsGenerate(handle, chunk, 0, 1.0)
+                defer { SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio) }
+                guard let audio = audio, audio.pointee.n > 0 else {
+                    DispatchQueue.main.async { completion(nil) }
+                    return
+                }
+                let count = Int(audio.pointee.n)
+                let samples = Array(UnsafeBufferPointer(start: audio.pointee.samples, count: count))
+                let wavData = self.floatSamplesToWAV(samples: samples, sampleRate: sr)
+                DispatchQueue.main.async { completion(wavData) }
             }
 
-            let count = Int(audio.pointee.n)
-            let samples = Array(UnsafeBufferPointer(start: audio.pointee.samples, count: count))
-            let wavData = self.floatSamplesToWAV(samples: samples, sampleRate: sr)
-            DispatchQueue.main.async { completion(wavData) }
+        case .openAI:
+            guard let engine = openAIEngine else {
+                DispatchQueue.main.async {
+                    self.errorMessage = "OpenAI engine není nastaven. Zadejte API klíč v Nastavení."
+                    completion(nil)
+                }
+                return
+            }
+            Task {
+                do {
+                    print("OpenAI: syntetizuji chunk \(index): \(chunk.prefix(50))...")
+                    let mp3Data = try await engine.synthesize(text: chunk)
+                    print("OpenAI: chunk \(index) OK, \(mp3Data.count) bytů")
+                    await MainActor.run { completion(mp3Data) }
+                } catch {
+                    print("OpenAI: chunk \(index) chyba: \(error)")
+                    await MainActor.run {
+                        // Nezobrazuj chybu uživateli při prefetch — jen přeskoč
+                        if index == self.currentChunkIndex {
+                            self.errorMessage = error.localizedDescription
+                        }
+                        completion(nil)
+                    }
+                }
+            }
         }
     }
 
-    private func playWAV(_ wavData: Data) {
+    private func playAudioData(_ data: Data) {
         try? AVAudioSession.sharedInstance().setActive(true)
         do {
-            audioPlayer = try AVAudioPlayer(data: wavData)
+            audioPlayer = try AVAudioPlayer(data: data)
             audioPlayer?.delegate = self
             audioPlayer?.prepareToPlay()
             audioPlayer?.play()
@@ -338,7 +378,7 @@ class TTSManager: NSObject, AVAudioPlayerDelegate, ObservableObject {
             synthesizeNextChunk()
             return
         }
-        playWAV(wavData)
+        playAudioData(wavData)
     }
 
     // AVAudioPlayerDelegate
